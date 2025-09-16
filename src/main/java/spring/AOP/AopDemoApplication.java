@@ -6,7 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import spring.AOP.AOPsetting.UserService;
+import spring.AOP.AOPsetting.UserService1;
 
 @SpringBootApplication
 @EnableAspectJAutoProxy // 启用AOP支持
@@ -18,7 +18,7 @@ public class AopDemoApplication {
 
     // 启动后执行测试代码
     @Bean
-    public CommandLineRunner testAop(UserService userService) {
+    public CommandLineRunner testAop(UserService1 userService) {
         return args -> {
             System.out.println("=== 测试正常方法调用 ===");
             String user = userService.getUserById(1001L);

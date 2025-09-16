@@ -12,12 +12,12 @@ import java.util.Arrays;
 // 声明这是一个切面类
 @Aspect
 // 让Spring管理这个Bean
-@Component
+//@Component  //自己测试的时候注掉，不注释掉的话启动日志太多
 public class LogAndPerformanceAspect {
     private static final Logger logger = LoggerFactory.getLogger(LogAndPerformanceAspect.class);
 
     // 定义切入点：匹配com.example.aopdemo.service包下所有类的所有方法
-    @Pointcut("execution(* com.example.aopdemo.service..*(..))")
+    @Pointcut("execution(* spring.AOP.AOPsetting..*(..))")
     public void serviceMethods() {}
 
     // 前置通知：方法执行前记录日志

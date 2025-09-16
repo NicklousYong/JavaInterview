@@ -28,7 +28,6 @@ public class BookController {
         logger.info("已经调取到getBookInfo方法");
         // 将书籍信息存入Model，供视图使用
         model.addAttribute("book", book);
-
         // 返回视图名称，Thymeleaf会自动查找对应的模板
         return "bookInfo";
     }

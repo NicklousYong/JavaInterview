@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 
 // 业务服务类
 @Service
-public class UserService {
+public class UserService1 {
 
     // 正常的业务方法
     public String getUserById(Long id) {

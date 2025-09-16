@@ -167,51 +167,28 @@
     5.集成IDE:大多数IDE（如IntelliJ IDEA, Eclipse）都支持与Spring DevTools集成，可以通过IDE的构建工具（如Maven, Gradle）自动触发DevTools的热部署功能。
     6.注意事项:热部署主要用于开发环境，不建议在生产环境中使用，因为频繁的重启可能会影响性能和稳定性。
 
-19.Spring Boot中如何实现日志管理？
-    1.默认日志框架:Spring Boot默认使用Logback作为日志框架，但也支持其他日志框架，如Log4j2和Java Util Logging。可以通过在项目的依赖中添加相应的日志框架依赖来切换日志框架。
-    2.配置文件:可以通过application.properties或application.yml文件配置日志相关的属性。例如：
-        logging.level.root=INFO
-        logging.level.com.example=DEBUG
-        logging.file.name=app.log
-        logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} - %msg%n
-        这些配置可以设置日志级别、日志文件名和日志输出格式等。
-    3.自定义配置:可以创建自定义的Logback或Log4j2配置文件（如logback-spring.xml或log4j2-spring.xml），并将其放在classpath下。Spring Boot会自动加载这些配置文件，从而实现更复杂的日志配置。
-    4.日志级别:可以通过配置不同包或类的日志级别，实现对不同模块的日志输出进行控制。常见的日志级别包括TRACE, DEBUG, INFO, WARN, ERROR。
-    5.日志输出位置:可以配置日志输出到控制台、文件或其他目标（如数据库、远程服务器）。例如，可以通过logging.file.name属性将日志输出到指定文件。
-    6.集成第三方工具:可以将Spring Boot的日志与第三方日志管理工具（如ELK Stack, Splunk）集成，实现集中化的日志管理和分析。
-    7.动态调整日志级别:在运行时，可以通过JMX或Actuator端点动态调整日志级别，而无需重启应用程序。
-    8.使用AOP记录日志:可以使用Spring AOP在方法执行前后记录日志，实现对关键业务操作的跟踪和监控。
-20.Spring Boot中如何实现安全管理？
-    1.Spring Security:Spring Boot集成了Spring Security框架，提供了强大的安全管理功能。只需在项目的依赖中添加以下依赖：
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        Spring Security会自动配置基本的安全机制，如用户认证和授权。
-    2.用户认证:可以通过配置内存中的用户、数据库中的用户或自定义用户服务来实现用户认证。例如，可以在application.properties中配置内存用户：
-        spring.security.user.name=user
-        spring.security.user.password=pass
-    3.授权管理:可以通过配置基于角色的访问控制（RBAC）来实现授权管理。例如，可以使用@PreAuthorize注解在方法上指定访问权限：
-        @PreAuthorize("hasRole('ADMIN')")
-        public void adminMethod() { ... }
-    4.自定义登录页面:可以通过配置SecurityConfig类来自定义登录页面和登录逻辑。例如：
-        @Override
-        protected void configure(HttpSecurity http) throws Exception {
-            http.formLogin().loginPage("/custom-login").permitAll();
-        }
-    5.密码加密:可以使用Spring Security提供的PasswordEncoder接口对用户密码进行加密存储，增强安全性。例如：
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-            return new BCryptPasswordEncoder();
-        }
-    6.防止CSRF攻击:Spring Security默认启用CSRF保护，可以通过配置HttpSecurity对象来定制CSRF策略。
-    7.集成OAuth2和JWT:可以通过添加相应的依赖，实现基于OAuth2和JWT的认证和授权机制，适用于微服务架构中的安全管理。
-    8.使用Actuator监控安全状态:Spring Boot Actuator提供了多个端点，可以监控应用程序的安全状态，如/health和/metrics端点。
-    9.日志记录:可以通过配置日志框架记录安全相关的事件，如登录失败、权限拒绝等，便于审计和分析。
-    10.定期更新依赖:保持Spring Security及其相关依赖的最新版本，以防止已知的安全漏洞。
+19.springboot如何配置一个项目监听多个端口？
+server:
+    ports: 8080, 8081, 8082  # 同时监听 8080、8081、8082 三个端口
+20.BeanFactory和FactoryBean有什么区别？
+    BeanFactory是一个工厂接口，用于自定义Bean的创建逻辑。实现了FactoryBean接口的类可以作为Bean定义的一部分，Spring容器会调用其getObject方法来获取实际的Bean实例。
+    BeanFactory是Spring容器的核心接口，负责管理和提供Bean实例。它定义了获取Bean实例的方法，如getBean()，并负责Bean的生命周期管理。
+        1.FactoryBean被称作工厂Bean，用于定义Bean创建的细节，如复杂的初始化，动态代理等。
+        2.当一个类实现了 FactoryBean 接口时，Spring 容器中注册的 Bean 名称（id）仍然是这个工厂类本身的名称，只是默认情况下，通过这个名称获取到的对象是 getObject() 方法返回的目标对象。
+            比如：@Component("complexObject") // 这里的名称属于 CustomFactoryBean 本身
+                public class CustomFactoryBean implements FactoryBean<ComplexObject> { ... }
+            这里当调用 context.getBean("complexObject") 时，返回的是 CustomFactoryBean.getObject() 生成的 ComplexObject 实例（目标对象）。
+            若需获取工厂 Bean 自身，需在 ID 前加 & 前缀：
+                CustomFactoryBean factory = context.getBean("&complexObject", CustomFactoryBean.class);
+    总结：BeanFactory强调Bean的管理，提供Bean的获取和注册。而FactoryBean则主要关注Bean的创建流程。
 
-21.springboot如何配置一个项目监听多个端口，
+
+21.BeanFactory和ApplicationContext有什么区别?
+    
+23.介绍下SqlSessionFactoryBean的原理
+
 22.如何配置一个项目配置多个数据源，并在特定的接口调用中分别调用不同的数据源
 23.yml和properties的区别
 24.springboot如何根据不同环境加载不同的配置文件
 25.springboot如何实现定时任务
+26.Springboot如何实现幂等
