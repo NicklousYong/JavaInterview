@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>书籍信息</title>
+    <style>
+        .container { max-width: 800px; margin: 50px auto; padding: 20px; box-shadow: 0 0 10px #ccc; }
+        .book-info { margin-top: 20px; }
+        .not-found { color: red; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>书籍详情</h1>
+
+    <!-- 使用Thymeleaf模板引擎渲染数据 -->
+    <div class="book-info" th:if="${book != null}">
+        <p><strong>ID:</strong> <span th:text="${book.id}"></span></p>
+        <p><strong>书名:</strong> <span th:text="${book.title}"></span></p>
+        <p><strong>作者:</strong> <span th:text="${book.author}"></span></p>
+        <p><strong>描述:</strong> <span th:text="${book.description}"></span></p>
+        <p><strong>价格:</strong> <span th:text="${book.price}"></span> 元</p>
+    </div>
+
+    <div class="not-found" th:if="${book == null}">
+        <p>未找到ID为 <span th:text="${param.id}"></span> 的书籍</p>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  status：Log4j 自身的日志级别（可选，用于调试 Log4j 配置）
+  monitorInterval：自动检测配置文件变化的时间间隔（秒），0 表示不检测
+-->
+<Configuration status="WARN" monitorInterval="30">
+    <!-- 1. 定义日志格式（可选，可复用） -->
+    <Properties>
+        <!-- 通用日志格式：时间 线程 级别 类名 - 消息 -->
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <!-- 日志文件路径 -->
+        <Property name="LOG_FILE_PATH">logs</Property>
+    </Properties>
+
+    <!-- 2. 配置日志输出目的地（Appenders） -->
+    <Appenders>
+        <!-- 2.1 控制台输出 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!-- 引用上面定义的日志格式 -->
+            <PatternLayout pattern="${LOG_PATTERN}" />
+            <!-- 过滤器：只输出 level >= INFO 的日志（可选） -->
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY" />
+        </Console>
+        <!-- 2.2 普通文件输出（不分割，一直追加） -->
+        <File name="File" fileName="${LOG_FILE_PATH}/app.log">
+            <PatternLayout pattern="${LOG_PATTERN}" />
+        </File>
+        <!-- 2.3 滚动文件输出（按时间和大小分割，推荐） -->
+        <RollingFile name="RollingFile"
+                     fileName="${LOG_FILE_PATH}/app.log"
+                     filePattern="${LOG_FILE_PATH}/app-%d{yyyy-MM-dd}-%i.log">  <!-- 分割后文件命名规则 -->
+        <PatternLayout pattern="${LOG_PATTERN}" />
+        <!-- 触发分割的条件 -->
+        <Policies>
+            <!-- 按时间分割：每天凌晨生成新文件 -->
+            <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+            <!-- 按大小分割：文件达到 10MB 时分割 -->
+            <SizeBasedTriggeringPolicy size="10MB" />
+        </Policies>
+            <!-- 分割文件保留策略：最多保留 30 个文件 -->
+            <DefaultRolloverStrategy max="30">
+            <!-- 超过保留数量后，删除最早的文件 -->
+                <Delete basePath="${LOG_FILE_PATH}" maxDepth="1">
+                    <IfFileName glob="app-*.log" />
+                    <IfLastModified age="30d" /> <!-- 保留 30 天内的文件 -->
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+        <!-- 2.4 错误日志单独输出（只记录 error 级别） -->
+        <RollingFile name="ErrorFile"
+                 fileName="${LOG_FILE_PATH}/error.log"
+                 filePattern="${LOG_FILE_PATH}/error-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="${LOG_PATTERN}" />
+            <!-- 只输出 error 及以上级别 -->
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY" />
+            <Policies>
+                <SizeBasedTriggeringPolicy size="5MB" />
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+            <DefaultRolloverStrategy max="10" />
+        </RollingFile>
+    </Appenders>
+
+            <!-- 3. 配置日志记录器（Loggers） -->
+            <Loggers>
+            <!-- 3.1 根日志（全局默认配置） -->
+            <Root level="info"> <!-- 全局默认日志级别为 info -->
+                <AppenderRef ref="Console" />       <!-- 输出到控制台 -->
+                <AppenderRef ref="RollingFile" />   <!-- 输出到滚动文件 -->
+                <AppenderRef ref="ErrorFile" />     <!-- 错误日志单独输出 -->
+            </Root>
+
+            <!-- 3.2 特定包的日志配置（覆盖根日志） -->
+            <!-- 示例：com.example 包下的日志级别为 debug -->
+            <Logger name="com.example" level="debug" additivity="false">
+                <AppenderRef ref="Console" />
+                <AppenderRef ref="RollingFile" />
+            </Logger>
+
+            <!-- 3.3 第三方框架的日志控制 -->
+            <!-- 示例：Spring 框架只输出 warn 及以上级别，减少冗余 -->
+            <Logger name="org.springframework" level="warn" additivity="false">
+                <AppenderRef ref="Console" />
+            </Logger>
+
+            <!-- 示例：MyBatis 只输出 error 及以上级别 -->
+            <Logger name="org.mybatis" level="error" additivity="false">
+                <AppenderRef ref="Console" />
+                <AppenderRef ref="ErrorFile" />
+            </Logger>
+        </Loggers>
+</Configuration>
