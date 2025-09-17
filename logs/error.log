@@ -384,3 +384,5 @@ java.lang.IllegalArgumentException: 用户ID无效: -1
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?]
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[?:?]
 	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:50) [spring-boot-devtools-3.2.0.jar:3.2.0]
+2025-09-16 15:51:47.062 [restartedMain] ERROR com.zaxxer.hikari.HikariConfig - Failed to load driver class com.mysql.cj.jdbc.Driver from HikariConfig class classloader jdk.internal.loader.ClassLoaders$AppClassLoader@251a69d7
+2025-09-16 15:54:55.698 [restartedMain] ERROR com.zaxxer.hikari.HikariConfig - Failed to load driver class com.mysql.cj.jdbc.Driver from HikariConfig class classloader jdk.internal.loader.ClassLoaders$AppClassLoader@251a69d7

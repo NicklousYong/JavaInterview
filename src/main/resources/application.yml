@@ -1,0 +1,21 @@
+spring:
+  profiles:
+    active: test
+  datasource:
+    # 主数据源
+    primary:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/test?useSSL=false&serverTimezone=UTC
+      username: root
+      password: 123456
+    # 从数据源
+    secondary:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/test?useSSL=false&serverTimezone=UTC
+      username: root
+      password: 123456
+    # 可添加更多数据源...
+
+server:
+  port: 8080
+

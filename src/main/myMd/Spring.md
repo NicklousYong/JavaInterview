@@ -181,14 +181,189 @@ server:
             若需获取工厂 Bean 自身，需在 ID 前加 & 前缀：
                 CustomFactoryBean factory = context.getBean("&complexObject", CustomFactoryBean.class);
     总结：BeanFactory强调Bean的管理，提供Bean的获取和注册。而FactoryBean则主要关注Bean的创建流程。
-
-
 21.BeanFactory和ApplicationContext有什么区别?
-    
-23.介绍下SqlSessionFactoryBean的原理
+    BeanFactory是Spring的顶层接口，定义了Bean的基本规范。ApplicationContext是BeanFactory的子接口，提供了更丰富的功能。
+    1.BeanFactory不会立即创建Bean,只有在getBean()的时候才会创建Bean。而ApplicationContext回一次性创建所有单例Bean,提前暴露配置错误。
+    2.
+22.几种ApplicationContext:
+    ClassPathXmlApplicationContext:
+    AnnotationConfigApplicationContext
+    WebApplicationContext
 
+23.介绍下SqlSessionFactoryBean的原理
+    
 22.如何配置一个项目配置多个数据源，并在特定的接口调用中分别调用不同的数据源
+    见multiDataSource;
 23.yml和properties的区别
+    properties采用键值对结构，格式为 key=value
+    yml采用缩进表示层级结构(不允许使用tab,通常使用两个空格)
+    yml支持数组，用"-"表示
+    
 24.springboot如何根据不同环境加载不同的配置文件
+    Spring Boot 规定，多环境配置文件需遵循 application-{profile}.yml（或 .properties）的命名格式，其中 {profile} 是环境标识（如 dev、test、prod）。
+    例如：
+        application.yml：默认配置文件（所有环境共享的配置）
+        application-dev.yml：开发环境配置
+        application-test.yml：测试环境配置
+        application-prod.yml：生产环境配置
+    指定各个环境配置文件的四种方式：
+        1.在 application.yml 中通过 spring.profiles.active 指定激活的环境：
+            spring:
+                profiles:
+                    active: dev  # 激活开发环境，可改为 test 或 prod
+        2.通过命令行参数指定（部署时常用）
+                # 启动开发环境
+                java -jar app.jar --spring.profiles.active=dev
+                # 启动生产环境
+                java -jar app.jar --spring.profiles.active=prod
+        3.通过系统环境变量指定
+                # Linux/Mac
+                export SPRING_PROFILES_ACTIVE=prod
+                # Windows（命令提示符）
+                set SPRING_PROFILES_ACTIVE=prod
+                # 启动应用（无需额外参数）
+                java -jar app.jar
+        4.通过 JVM 参数指定
+                java -Dspring.profiles.active=test -jar app.jar
+          优先级从高到低为：
+                命令行参数 > JVM 参数 > 系统环境变量 > 配置文件指定
 25.springboot如何实现定时任务
+        查看schedule包下内容
 26.Springboot如何实现幂等
+        1.基于数据库唯一索引，防止相同的插入
+        2.基于Token令牌机制：通过预生成唯一 Token 并验证的方式，确保同一请求仅被处理一次，适合前端表单提交、支付请求等场景。
+            实现步骤：
+                生成 Token 并返回给前端：
+                    前端请求 Token，后端生成唯一令牌（如 UUID）存入 Redis，设置过期时间。
+                前端提交时携带 Token：
+                    前端将 Token 放入请求头或参数中，后端验证 Token 有效性。
+                验证并删除 Token：
+                    后端校验 Token 存在后，原子性删除 Token（防止重复提交），再处理业务。
+        3.基于分布式锁 ：通过 Redis 或 Zookeeper 实现分布式锁，确保同一时间只有一个请求处理业务，适合库存扣减、转账等场景。
+            实现步骤：
+                定义唯一锁标识：
+                    以业务唯一键（如订单号）作为锁的 key。
+                获取锁并处理业务：
+                    尝试获取锁，获取成功则处理业务，失败则返回 “操作中”。
+        4.基于状态机：
+                通过状态流转控制，确保同一业务只能从特定状态变更到目标状态，适合订单状态更新等场景。
+            实现示例：
+                订单状态流转规则：待支付 → 已支付 → 已发货 → 已完成，通过 SQL 条件确保状态变更的幂等性。
+                每次提交时检查状态，满足状态条件时才允许提交。
+
+27.过滤器，拦截器，监听器
+        1.过滤器:过滤器是JAVA EE规范的一部分，请求到达Servlet之前，过滤器可以对请求进行预处理，或者对响应进行后处理。过滤器通常用于日志记录、权限检查、请求修改等。
+            过滤器通过实现javax.servlet.Filter接口来定义，并在web.xml中配置，或者通过注解@WebFilter进行配置。
+            可拦截所有请求，包括静态资源请求。只能在请求、响应的生命周期中处理，无法直接访问Spring容器中的bean。
+        2.拦截器：Interceptor 是 Spring MVC 提供的组件，运行在 Spring 容器中，用于拦截 Controller 方法的调用，可在方法执行前后进行处理。
+            对Controller进行预处理。记录方法执行时间（性能监控）。
+            基于JAVA反射机制，属于Spring框架范畴，仅拦截Controller请求，无法拦截静态资源请求。可以调用Spring的bean。
+        3.监听器：Listener 是 Java EE 规范的一部分，用于监听特定事件的发生，如请求创建、会话创建等。监听器通过实现 javax.servlet.ServletContextListener、HttpSessionListener 等接口来定义，并在 web.xml 中配置，或者通过注解@WebListener进行��置。
+            监听器用于监听应用程序的生命周期事件，如应用启动、关闭，用户会话创建、销毁等。可以在应用启动时初始化资源，在应用关闭时释放资源。
+            主要作用：监听应用启动/关闭。监听session的创建于销毁。监听请求对象的创建与销毁。
+            常见的监听器接口：
+                ServletContextListener：监听ServletContext的生命周期事件。
+                HttpSessionListener：监听HttpSession的生命周期事件。
+                ServletRequestListener：监听ServletRequest的生命周期事件。
+            基于事件驱动，被动触发（当监听的事件发生时执行）。可访问 Servlet 上下文（ServletContext），实现全局数据共享。
+28.Spring是默认单例吗？是默认懒加载吗？
+    Spring默认是饿汉式加载。如果是单例，则使用饿汉式加载，如果非单例，则在每次从容器中初始化才会创建。Spring默认是单例。
+    Spring中非单例都是懒加载，且@Lazy对于非单例无效。
+    Spring中无法对非单例进行饿汉加载，因为非单例的Scope(作用域)无法确定在什么作用域使用，无法提前创建。
+
+29.Spring循环依赖问题(待深入研究)
+    循环依赖的三种场景：
+            1.构造器注入循环依赖
+            2.Setter注入循环依赖
+    
+30.Spring文件加载优先级
+    同一名称的配置文件，加载顺序为:
+        1.应用程序当前目录下的config目录下。
+        2.应用程序当前目录下。
+        3.classpath下的config目录下。
+        4.classpath下。
+    注意：1.通过 @PropertySource 注解引入的配置文件，默认优先级低于 application.properties。
+         2.当存在properties和yml两种格式的配置文件时，properties优先级高。
+
+31.Spring中声明式事务失效的场景
+    1.方法不是public的:@Transactional注解只对public方法有效
+    2.自身调用:当一个没有事务的方法A去调用一个有事务的方法B，方法B的事务会失效。原因是Spring事务基于AOP代理实现，类内部调用不会经过代理对象。
+            如何解决：通过Spring容器获取当前类的代理对象，然后通过代理对象调用方法B。
+                ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+                MyService myService = context.getBean(MyService.class);
+                myService.methodB(); // 通过代理对象调用
+    3.异常被捕获但是没有被抛出：若事务方法内部捕获了异常，但是没有抛出，那么Spring没有办法感知异常，会正常提交事务，导致失败。
+            解决办法：捕获异常后手动抛出（或通过 TransactionAspectSupport.currentTransactionStatus().setRollbackOnly() 强制回滚）：
+                catch (Exception e) {
+                    e.printStackTrace();
+                throw new RuntimeException("操作失败"); // 抛出异常，触发回滚
+                }
+    4.抛出的异常类型不匹配
+            @Transactional 默认只对 RuntimeException 及其子类 和 Error 异常回滚。若抛出的是受检异常（如 IOException、SQLException），事务不会回滚。
+            解决办法：通过 rollbackFor 属性指定需要回滚的异常类型：
+                @Transactional(rollbackFor = Exception.class) // 对所有异常回滚
+    5.数据源没有配置事务管理器
+            Spring 事务需要对应的事务管理器（如 DataSourceTransactionManager），若未配置，@Transactional 会失效。
+    6.事务传播行为配置错误
+            若事务传播行为配置为 SUPPORTS、NOT_SUPPORTED、NEVER 等，可能导致事务不生效。
+    7.表引擎不支持事务
+            若数据库表使用 MyISAM 引擎（不支持事务），即使 Spring 配置了事务，也不会生效。需改用 InnoDB 引擎（支持事务）。
+
+32.Spring中事务的传播机制
+    Spring 中的事务传播机制（Transaction Propagation）定义了当一个事务方法调用另一个事务方法时，两个事务之间如何交互（如是否共用一个事务、是否新建事务等）。它通过 @Transactional 注解的 propagation 属性配置，是解决复杂业务中事务嵌套问题的核心机制。
+    Spring 支持以下几种事务传播行为：
+        1.REQUIRED（默认）：如果当前存在事务，则加入该事务；如果没有，则创建一个新的事务。
+        2.REQUIRES_NEW：总是创建一个新的事务，如果当前存在事务，则将其挂起。
+        3.SUPPORTS：如果当前存在事务，则加入该事务；如果没有，则以非事务方式执行。
+        4.NOT_SUPPORTED：总是以非事务方式执行，如果当前存在事务，则将其挂起。
+        5.MANDATORY：必须在一个已有的事务中执行，如果没有事务则抛出异常。
+        6.NEVER：必须以非事务方式执行，如果当前存在务则抛出异常。
+        7.NESTED：如果当前存在事务，则在嵌套事务中执行；如果没有，则创建一个新的事务。嵌套事务可以独立提交或回滚，但外层事务回滚时，嵌套事务也会回滚。
+
+
+33.怎么理解约定大于配置？
+        “约定大于配置”（Convention over Configuration，简称 CoC）是软件工程中一种重要的设计思想，核心是通过预定义 “合理的默认规则（约定）” 来减少开发者的配置工作，仅在需要偏离默认规则时才进行手动配置。
+
+34.Spring中的Bean是线程安全的吗
+
+35.Spring如何处理线程并发问题
+
+36.JDK动态代理和CGLIB动态代理的区别
+
+37.什么是切面？
+
+38.Spring框架中如何更好地使用JDBC?
+
+39.JDBCTemplate是什么？
+
+40.Spring中默认使用什么代理？
+        Spring2.X开始使用CGLIB动态代理，JDK动态代理需要实现接口，具有使用条件，但是CGLIB动态代理没有使用条件，而且Spring把CGLIB动态代理纳入维护，很可控。
+
+41.如果在一个单例对象中注入了一个非线程安全的对象，它会发生什么？怎么解决？
+                
+
+42.为什么Spring明知道Bean是单例的，还允许注入线程不安全的对象？
+
+43.Spring缓存为什么是3级？
+
+44.为什么要用ObjectFactory匿名函数提前暴露呢？
+
+45.如果把Bean的作用域设置为prototype,还会进三级缓存吗？
+
+46.@transactional是Spring实现的还是数据库实现的？
+
+47.如果有一个实现类接口，但是我强制使用CGLIB动态代理，有什么方法？
+在 Spring AOP 中，默认策略是：
+        目标类实现接口 → 优先使用 JDK 动态代理（基于接口）。
+        目标类未实现接口 → 使用 CGLIB 代理（基于继承）。
+        但可以通过配置强制使用 CGLIB 代理（即使目标类实现了接口）：
+      强制使用CGLIB动态代理：
+        使用XML配置：
+        <!-- XML 配置：强制使用 CGLIB -->
+        <aop:aspectj-autoproxy proxy-target-class="true"/>
+        或者使用注解：
+            @Configuration
+            @EnableAspectJAutoProxy(proxyTargetClass = true) // 强制使用 CGLIB
+            public class AopConfig {
+            // ...
+            }
