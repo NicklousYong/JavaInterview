@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  namespace: 必须与对应的 Mapper 接口全类名一致
+  作用：建立 XML 与 Mapper 接口的绑定
+-->
+<mapper namespace="spring.multiDataSource.mapper.UserMapper">
+
+    <!-- 1. 定义结果集映射（可选，用于实体类与表字段映射） -->
+    <resultMap id="UserResultMap" type="spring.multiDataSource.dao.User">
+        <!-- id：主键映射 -->
+        <id column="user_id" property="userId" />
+        <!-- result：普通字段映射 -->
+        <result column="username" property="username" />
+        <result column="create_time" property="createTime" />
+        <!-- 日期类型转换示例 -->
+        <result column="birth_day" property="birthDay" jdbcType="DATE" />
+    </resultMap>
+
+    <!-- 2. 查询语句（select） -->
+    <!-- id：必须与 Mapper 接口中的方法名一致 -->
+    <select id="getUserById" parameterType="Long" resultMap="UserResultMap">
+        SELECT user_id, username, create_time, birth_day
+        FROM t_user
+        WHERE user_id = #{id}  <!-- #{id} 对应方法参数 -->
+    </select>
+
+    <!-- 3. 新增语句（insert） -->
+    <insert id="insertUser" parameterType="spring.multiDataSource.dao.User"
+            useGeneratedKeys="true" keyProperty="userId">
+        <!-- useGeneratedKeys：获取自增主键；keyProperty：将主键值赋给实体类的 userId 属性 -->
+        INSERT INTO t_user (username, create_time, birth_day)
+        VALUES (#{username}, #{createTime}, #{birthDay})
+    </insert>
+
+    <!-- 4. 更新语句（update） -->
+    <update id="updateUser" parameterType="spring.multiDataSource.dao.User">
+        UPDATE t_user
+        SET username = #{username},
+            birth_day = #{birthDay}
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 5. 删除语句（delete） -->
+    <delete id="deleteUserById" parameterType="Long">
+        DELETE FROM t_user
+        WHERE user_id = #{id}
+    </delete>
+
+    <!-- 6. 动态 SQL 示例（if 标签） -->
+    <select id="getUserByCondition" parameterType="spring.multiDataSource.dao.User" resultMap="UserResultMap">
+        SELECT user_id, username, create_time, birth_day
+        FROM t_user
+        WHERE 1=1
+        <!-- 条件判断：如果 username 不为空，则拼接该条件 -->
+        <if test="username != null and username != ''">
+            AND username LIKE CONCAT('%', #{username}, '%')
+        </if>
+        <if test="birthDay != null">
+            AND birth_day = #{birthDay}
+        </if>
+    </select>
+
+    <!-- 7. 批量插入示例 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO t_user (username, create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.username}, #{item.createTime})
+        </foreach>
+    </insert>
+
+</mapper>
