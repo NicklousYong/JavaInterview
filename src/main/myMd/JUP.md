@@ -14,7 +14,6 @@
         解决方案：
             使用完 ThreadLocal 后，务必调用 remove() 方法清除 value。
             避免使用静态 ThreadLocal 长期持有大对象。
-
 2.线性探测法：
 
 3.java中实现多线程有几种方法：
