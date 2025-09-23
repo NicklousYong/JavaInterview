@@ -92,8 +92,8 @@
     控制对象序列化的关键字，修饰的对象不被序列化。
 
 18.java创建对象有几种方式：
-    1.New关键字
-    2.class.formane
+    1.New关键字.
+    2.class.formane.
     3.clone
     4.通过反序列化
     5.通过工厂模式创建
@@ -113,8 +113,8 @@
         3.修饰类，使类不可被继承
 
 21.static有哪些用法
-        1.修饰常量，常量会静态加载。
-        2.修饰方法，方法会在类加载时加载，，可以通过静态名称调用
+        1.修饰常量，常量会静态加载。在类加载时初始化，并且在内存中只有一份。
+        2.修饰方法，方法会在类加载时加载，可以通过静态名称调用。
         3.修饰静态代码块，使静态代码块在类加载的时候执行，且只加载一次
 
 22.3*0.1`==`0.3返回值是什么
@@ -126,7 +126,8 @@
 
 24.try catch finally，try里有return，finally还执行么？
         finally会执行
-        特殊情况：try 中的 return 会先记录返回值，finally 中修改变量不会改变已记录的返回值。（见代码：testFinally.java），但如果操作的是引用类型，
+        特殊情况：try 中的 return 会先记录返回值，finally 中修改变量不会改变已记录的返回值。(因为try语句中会先计算return的值，然后再执行finally代码块)
+        （见代码：testFinally.java），但如果操作的是引用类型，则会改变引用对象的值。
 
 25.Exception与Error的包结构
         Exception和Error都继承自Throwable类，位于java.lang包下。
@@ -136,11 +137,17 @@
             1.检查型异常（Checked Exception）：必须在代码中显式处理，否则编译不通过，如IOException、SQLException等。
             2.非检查型异常（Unchecked Exception）：不强制要求处理，通常是程序逻辑错误引起的，如NullPointerException、ArrayIndexOutOfBoundsException等。
         Error: 通常是由虚拟机引起的严重问题，如OutOfMemoryError、StackOverflowError等。
+        Throwable  -----Exception   -----CheckedException
+                            |                    |
+                            |                    -----UncheckedException
+                   -----Error 
 
 26.进程，线程和程序的基本概念
-        程序：程序是一系列静态指令的集合，是保存在介质中的一段程序。
+        程序：程序是一系列静态指令的集合，是保存在介质中的一段逻辑。
         进程：进程是程序调用的一次执行过程，是系统进行资源分配和调度的一个独立单位。
-        线程：线程是CPU执行和调度的一个基本单位。
+                进程和系统调度相关。我们电脑上有时候会提示某某文件被某某程序占用就是这个原因。
+        线程：线程是CPU执行和调度的一个基本单位，线程中栈的数据相互独立。
+                线程和CPU调度相关。一个进程可以有多个线程，这些线程共享进程的资源，但每个线程有自己的栈空间和程序计数器。
         简单来说：程序是 “剧本”，进程是 “正在演出的戏剧”，线程是 “戏剧中的角色”—— 剧本（程序）本身不活动，戏剧（进程）是剧本的一次演出过程，而角色（线程）在戏剧中协同完成表演。
 
 27.线程的几种状态
@@ -154,7 +161,7 @@
     7.终止状态：线程执行完run方法，或者因异常退出，或者被其他线程强制终止，进入终止状态。终止状态的线程不再参与调度，资源会被回收。
 
 28.线程的优先级
-    线程优先级是一个整数值，范围从1到10，默认优先级为5。优先级高的线程在争夺CPU资源时更有优势，但并不保证一定会先执行。
+    线程优先级是一个整数值，范围从1(最低)到10(最高)，默认优先级为5。优先级高的线程在争夺CPU资源时更有优势，但并不保证一定会先执行。
     线程优先级可以通过setPriority(int newPriority)方法设置，通过getPriority()方法获取。
     线程优先级的设置应谨慎使用，过高或过低的优先级可能导致线程饥饿或资源浪费。
 
@@ -162,6 +169,11 @@
     1.继承Thread类：创建一个类继承Thread类，并重写run()方法，然后创建该类的实例并调用start()方法启动线程。
     2.实现Runnable接口：创建一个类实现Runnable接口，并实现run()方法，然后创建Thread类的实例，传入Runnable对象，并调用start()方法启动线程。
     3.实现Callable接口：创建一个类实现Callable接口，并实现call()方法，然后使用FutureTask包装Callable对象，最后创建Thread类的实例，传入FutureTask对象，并调用start()方法启动线程。Callable接口可以有返回值，并且可以抛出异常。
+        Callable 与 Runnable 的主要区别：
+                Callable 的 call() 方法有返回值，Runnable 的 run() 方法无返回值.
+                Callable 的 call() 方法可以抛出 checked 异常，Runnable 的 run() 方法不能.
+                Callable 需要配合 Future 来获取返回值.
+        实例见：CallableDemo类        
     4.使用线程池：通过Executors类创建线程池，如FixedThreadPool、CachedThreadPool等，然后提交Runnable或Callable任务到线程池执行。线程池可以有效管理和复用线程资源，提高性能。
 
 30.java中的IO流
