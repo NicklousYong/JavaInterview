@@ -87,15 +87,15 @@
     2.属性赋值(Population):Spring容器将配置的属性值注入到Bean实例中。
     3.初始化(Initialization):如果Bean实现了InitializingBean接口，调用afterPropertiesSet方法；如果配置了init-method，调用指定的初始化方法。
     4.使用(Usage):Bean实例被应用程序使用。
-    5.销毁(Destruction):如果Bean实现了DisposableBean接口，调用destroy方法；如果配置了destroy-method，调用指定的销毁方法。当容器关闭时，执行销毁操作。
-12.Spring中Bean的作用域有哪些？
+    5.销毁(Destruction):如果Bean实现了DisposableBean接口，调用destroy方法；如果配置了destroy-method，调用指定的销毁方法。
+    当容器关闭时，执行销毁操作。
+12.Spring中Bean的作用域有哪些？ 
     1.Singleton(单例，默认):每个Spring IoC容器中只有一个Bean实例。
     2.Prototype(原型):每次请求都会创建一个新的Bean实例。
     3.Request(请求):在Web应用中，每个HTTP请求都会创建一个新的Bean实例。
     4.Session(会话):在Web应用中，每个HTTP会话都会创建一个新的Bean实例。
     5.Application(应用):在Web应用中，整个ServletContext范围内只有一个Bean实例。
     6.WebSocket:在WebSocket会话范围内，每个WebSocket会话都会创建一个新的Bean实例。
-
 13.Spring中如何处理异常？
     使用@ControllerAdvice和@ExceptionHandler注解定义全局异常处理器。
 
@@ -103,7 +103,8 @@
     1.单例模式(Singleton Pattern):Spring容器默认以单例模式管理Bean实例，确保每个Bean在容器中只有一个实例。
     2.工厂模式(Factory Pattern):Spring使用工厂模式创建Bean实例，通过配置文件或注解定义Bean的创建方式。
     3.代理模式(Proxy Pattern):Spring AOP使用动态代理为目标对象创建代理对象，实现横切关注点的增强。
-    4.模板方法模式(Template Method Pattern):Spring的JdbcTemplate和RestTemplate等类使用模板方法模式封装了常见的操作流程，简化了数据库和RESTful服务的访问。
+    4.模板方法模式(Template Method Pattern):Spring的JdbcTemplate和RestTemplate等类使用模板方法模式封装了常见的操作流程，
+简化了数据库和RESTful服务的访问。
     5.观察者模式(Observer Pattern):Spring的事件机制使用观察者模式，允许对象订阅和监听特定事件的发生。
     7.适配器模式(Adapter Pattern):Spring的HandlerAdapter用于适配不同类型的处理器，使其能够被DispatcherServlet调用。
     8.装饰器模式(Decorator Pattern):Spring的BeanPostProcessor允许在Bean初始化前后对Bean进行增强，类似于装饰器模式。
