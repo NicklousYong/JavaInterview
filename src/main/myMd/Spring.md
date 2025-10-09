@@ -126,8 +126,10 @@
     10.策略模式(Strategy Pattern):Spring的不同事务管理器实现了策略模式，允许根据不同的需求选择合适的事务管理策略。
 
 15.Spring Boot的自动配置原理是什么？
-    1.条件注解(Conditional Annotations):Spring Boot使用一系列条件注解（如@ConditionalOnClass, @ConditionalOnMissingBean等）来判断某些类或Bean是否存在，从而决定是否应用特定的配置。
-    2.自动配置类(Auto-Configuration Classes):Spring Boot通过@EnableAutoConfiguration注解启用自动配置功能，这个注解会扫描classpath下的META-INF/spring.factories文件，加载所有声明的自动配置类。
+    1.条件注解(Conditional Annotations):Spring Boot使用一系列条件注解
+（如@ConditionalOnClass, @ConditionalOnMissingBean等）来判断某些类或Bean是否存在，从而决定是否应用特定的配置。
+    2.自动配置类(Auto-Configuration Classes):Spring Boot通过@EnableAutoConfiguration注解启用自动配置功能，
+        这个注解会扫描classpath下的META-INF/spring.factories文件，加载所有声明的自动配置类。
     3.配置属性(Configuration Properties):Spring Boot允许通过application.properties或application.yml文件配置应用程序的属性，这些属性可以影响自动配置的行为。
     4.优先级和覆盖(Precedence and Overrides):用户可以通过自定义配置类或@Bean方法覆盖自动配置的Bean，从而实现个性化定制。
     5.启动过程(Startup Process):在应用启动时，Spring Boot会初始化Spring容器，加载自动配置类，并根据条件注解的判断结果创建和配置Bean实例。
@@ -136,13 +138,24 @@
 
 16.@SpringBootApplication原理
     @SpringBootApplication是一个复合注解，结合了以下三个注解的功能：
-    1.@Configuration:标识该类为Spring配置类，允许定义@Bean方法来注册Bean。
-    2.@EnableAutoConfiguration:启用Spring Boot的自动配置功能，根据classpath中的依赖和配置自动配置Spring应用程序。
-    3.@ComponentScan:启用组件扫描，自动发现并注册同一包及其子包中的Spring组件（如@Controller, @Service, @Repository等）。
-    通过使用@SpringBootApplication注解，开发者可以简化配置过程，只需在主应用程序类上添加该注解，即可启用自动配置和组件扫描功能，从而快速构建Spring Boot应用程序。
+        1.@SpringBootConfiguration:标识该类为Spring配置类，允许定义@Bean方法来注册Bean。
+        2.@EnableAutoConfiguration:启用Spring Boot的自动配置功能，根据classpath中的依赖和配置自动配置Spring应用程序。
+            下面还有一个@Import注解，导入 AutoConfigurationImportSelector.class，这里是自动导入的核心逻辑。
+            Spring Boot 在启动时，会通过 SpringFactoriesLoader 工具类读取 
+            META-INF/spring.factories 文件（位于 spring-boot-autoconfigure 等 JAR 中）。该文件中声明了
+            所有可用的自动配置类（如 WebMvcAutoConfiguration、DataSourceAutoConfiguration 等），每个配置类对应一种场景的自动配置。
+            自动配置类并非全部生效，而是通过条件注解（@Conditional 系列）按需启用：
+                @ConditionalOnClass：当类路径中存在指定类时生效（如 WebMvcAutoConfiguration 依赖 DispatcherServlet 类）。
+                @ConditionalOnMissingBean：当容器中不存在指定 Bean 时生效（允许用户自定义 Bean 覆盖自动配置）。
+                @ConditionalOnProperty：根据配置文件中的属性值决定是否生效（如 spring.datasource.enabled=true）。
+        3.@ComponentScan:启用组件扫描，自动发现并注册同一包及其子包中的Spring组件（如@Controller, @Service, @Repository等）。
+    通过使用@SpringBootApplication注解，开发者可以简化配置过程，
+    只需在主应用程序类上添加该注解，即可启用自动配置和组件扫描功能，从而快速构建Spring Boot应用程序。
 
 17.Spring Boot中如何实现配置文件的分环境管理？
-    1.使用不同的配置文件：Spring Boot支持根据不同的环境加载不同的配置文件。默认情况下，Spring Boot会加载application.properties或application.yml文件。可以创建多个配置文件，如application-dev.properties, application-prod.properties等，分别对应不同的环境。
+    1.使用不同的配置文件：
+        Spring Boot支持根据不同的环境加载不同的配置文件。默认情况下，Spring Boot会加载application.properties或application.yml文件。
+        可以创建多个配置文件，如application-dev.properties, application-prod.properties等，分别对应不同的环境。
     2.激活配置文件：通过设置spring.profiles.active属性来指定当前激活的配置文件。例如，可以在application.properties中设置：
         spring.profiles.active=dev
         这样，Spring Boot会加载application-dev.properties文件中的配置。
@@ -150,7 +163,8 @@
         java -jar myapp.jar --spring.profiles.active=prod
     4.环境变量：也可以通过环境变量来设置激活的配置文件，例如在Linux或MacOS中：
         export SPRING_PROFILES_ACTIVE=prod
-    5.优先级：Spring Boot会按照一定的优先级加载配置文件，命令行参数 > 环境变量 > application-{profile}.properties > application.properties。因此，可以通过不同的方式覆盖配置。
+    5.优先级：Spring Boot会按照一定的优先级加载配置文件，
+命令行参数 > 环境变量 > application-{profile}.properties > application.properties。因此，可以通过不同的方式覆盖配置。
     6.使用@ConfigurationProperties注解：可以将配置属性绑定到Java类中，方便管理和使用。例如：
         @ConfigurationProperties(prefix="app")
         public class AppProperties {
@@ -170,6 +184,8 @@
             // return prod DataSource
         }
     通过以上方法，Spring Boot实现了灵活的配置文件分环境管理，方便开发者根据不同的部署环境进行配置调整。
+    8.同名的 properties 文件优先级高于 yml 文件
+        
 
 18.Spring Boot中如何实现热部署？
     1.Spring DevTools:Spring Boot提供了一个名为Spring DevTools的模块，专门用于开发时的热部署。只需在项目的依赖中添加以下依赖：
