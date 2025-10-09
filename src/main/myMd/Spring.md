@@ -10,9 +10,9 @@
             代理对象：AOP生成的对象。
 
 2.AOP的实现机制： 
-    若目标对象实现了接口，使用JDK动态代理。
+    若目标对象实现了接口，使用JDK动态代理。（JDK亲生的反而有缺陷，所以才会有扩展）
     若目标对象未实现接口，使用CGLIB动态代理。
-
+    JDK动态代理出现在运行时，而ASPECTJ动态代理出现在编译时。
 
 3.Autowired注解和Resource注解有什么不同  
     1.Autowired注解来自Spring框架，按类型注入。
@@ -41,8 +41,11 @@
         DispatcherServlet通过HandlerMapping查找与请求URL匹配的处理器(Controller)。
     4.处理器适配器(HandlerAdapter)调用处理器
         DispatcherServlet通过HandlerAdapter调用找到的处理器方法。
+        也就是查找对应的handler。
     5.处理器(Controller)方法执行业务逻辑
+        在这一步之前执行了拦截器的preHandle方法。
         处理器方法执行业务逻辑，处理请求参数，并返回ModelAndView对象。
+        zai这一步之后执行拦截器的postHandle方法。
     6.视图解析器(ViewResolver)解析视图
         DispatcherServlet通过ViewResolver将逻辑视图名解析为具体的视图对象(如JSP)。
     7.渲染视图
@@ -85,10 +88,20 @@
 11.解释一下Spring bean的生命周期
     1.实例化(Instantiation):Spring容器通过反射创建Bean实例。
     2.属性赋值(Population):Spring容器将配置的属性值注入到Bean实例中。
-    3.初始化(Initialization):如果Bean实现了InitializingBean接口，调用afterPropertiesSet方法；如果配置了init-method，调用指定的初始化方法。
-    4.使用(Usage):Bean实例被应用程序使用。
-    5.销毁(Destruction):如果Bean实现了DisposableBean接口，调用destroy方法；如果配置了destroy-method，调用指定的销毁方法。
+    3.初始化前置处理（BeanPostProcessor#postProcessBeforeInitialization):
+        容器中的所有BeanPostProcessor（Bean 后置处理器）会对 Bean 执行前置处理，可修改 Bean 的状态或替换 Bean 实例。
+        实现 AOP 代理、数据校验等通用逻辑（如 Spring 的事务代理在此阶段可能生效）。
+    4. 初始化(Initialization):如果Bean实现了InitializingBean接口，调用afterPropertiesSet方法；如果配置了init-method，调用指定的初始化方法。
+            BeanNameAware：注入当前 Bean 在容器中的名称（setBeanName(String name)）。
+            BeanFactoryAware：注入当前 BeanFactory 实例（setBeanFactory(BeanFactory factory)）。
+            ApplicationContextAware：注入当前 ApplicationContext 实例（setApplicationContext(ApplicationContext context)）。
+    5.初始化后置处理(BeanPostProcessor#postProcessAfterInitialization):
+        BeanPostProcessor对 Bean 执行后置处理，通常是最终的增强（如 AOP 代理对象在此阶段生成）。
+        若此处返回新的代理对象，容器后续将使用代理对象而非原始 Bean。
+    6.使用(Usage):Bean实例被应用程序使用。
+    7.销毁(Destruction):如果Bean实现了DisposableBean接口，调用destroy方法；如果配置了destroy-method，调用指定的销毁方法。
     当容器关闭时，执行销毁操作。
+
 12.Spring中Bean的作用域有哪些？ 
     1.Singleton(单例，默认):每个Spring IoC容器中只有一个Bean实例。
     2.Prototype(原型):每次请求都会创建一个新的Bean实例。
@@ -96,6 +109,7 @@
     4.Session(会话):在Web应用中，每个HTTP会话都会创建一个新的Bean实例。
     5.Application(应用):在Web应用中，整个ServletContext范围内只有一个Bean实例。
     6.WebSocket:在WebSocket会话范围内，每个WebSocket会话都会创建一个新的Bean实例。
+
 13.Spring中如何处理异常？
     使用@ControllerAdvice和@ExceptionHandler注解定义全局异常处理器。
 
@@ -110,6 +124,7 @@
     8.装饰器模式(Decorator Pattern):Spring的BeanPostProcessor允许在Bean初始化前后对Bean进行增强，类似于装饰器模式。
     9.责任链模式(Chain of Responsibility Pattern):Spring Security使用责任链模式处理请求的认证和授权。
     10.策略模式(Strategy Pattern):Spring的不同事务管理器实现了策略模式，允许根据不同的需求选择合适的事务管理策略。
+
 15.Spring Boot的自动配置原理是什么？
     1.条件注解(Conditional Annotations):Spring Boot使用一系列条件注解（如@ConditionalOnClass, @ConditionalOnMissingBean等）来判断某些类或Bean是否存在，从而决定是否应用特定的配置。
     2.自动配置类(Auto-Configuration Classes):Spring Boot通过@EnableAutoConfiguration注解启用自动配置功能，这个注解会扫描classpath下的META-INF/spring.factories文件，加载所有声明的自动配置类。
@@ -118,12 +133,14 @@
     5.启动过程(Startup Process):在应用启动时，Spring Boot会初始化Spring容器，加载自动配置类，并根据条件注解的判断结果创建和配置Bean实例。
     6.简化配置(Simplified Configuration):自动配置大大减少了开发者需要编写的样板代码，使得应用程序可以更快地启动和运行。
     7.扩展性(Extensibility):开发者可以通过创建自定义的自动配置类，扩展Spring Boot的自动配置功能，以满足特定的业务需求。
+
 16.@SpringBootApplication原理
     @SpringBootApplication是一个复合注解，结合了以下三个注解的功能：
     1.@Configuration:标识该类为Spring配置类，允许定义@Bean方法来注册Bean。
     2.@EnableAutoConfiguration:启用Spring Boot的自动配置功能，根据classpath中的依赖和配置自动配置Spring应用程序。
     3.@ComponentScan:启用组件扫描，自动发现并注册同一包及其子包中的Spring组件（如@Controller, @Service, @Repository等）。
     通过使用@SpringBootApplication注解，开发者可以简化配置过程，只需在主应用程序类上添加该注解，即可启用自动配置和组件扫描功能，从而快速构建Spring Boot应用程序。
+
 17.Spring Boot中如何实现配置文件的分环境管理？
     1.使用不同的配置文件：Spring Boot支持根据不同的环境加载不同的配置文件。默认情况下，Spring Boot会加载application.properties或application.yml文件。可以创建多个配置文件，如application-dev.properties, application-prod.properties等，分别对应不同的环境。
     2.激活配置文件：通过设置spring.profiles.active属性来指定当前激活的配置文件。例如，可以在application.properties中设置：
@@ -171,6 +188,7 @@
 19.springboot如何配置一个项目监听多个端口？
 server:
     ports: 8080, 8081, 8082  # 同时监听 8080、8081、8082 三个端口
+
 20.BeanFactory和FactoryBean有什么区别？
     BeanFactory是一个工厂接口，用于自定义Bean的创建逻辑。实现了FactoryBean接口的类可以作为Bean定义的一部分，Spring容器会调用其getObject方法来获取实际的Bean实例。
     BeanFactory是Spring容器的核心接口，负责管理和提供Bean实例。它定义了获取Bean实例的方法，如getBean()，并负责Bean的生命周期管理。
@@ -182,10 +200,12 @@ server:
             若需获取工厂 Bean 自身，需在 ID 前加 & 前缀：
                 CustomFactoryBean factory = context.getBean("&complexObject", CustomFactoryBean.class);
     总结：BeanFactory强调Bean的管理，提供Bean的获取和注册。而FactoryBean则主要关注Bean的创建流程。
+
 21.BeanFactory和ApplicationContext有什么区别?
     BeanFactory是Spring的顶层接口，定义了Bean的基本规范。ApplicationContext是BeanFactory的子接口，提供了更丰富的功能。
     1.BeanFactory不会立即创建Bean,只有在getBean()的时候才会创建Bean。而ApplicationContext回一次性创建所有单例Bean,提前暴露配置错误。
-    2.
+    2.ApplicationContext支持国际化消息资源处理,可以通过MessageSource接口获取国际化消息。而BeanFactory不支持。
+
 22.几种ApplicationContext:
     ClassPathXmlApplicationContext:
     AnnotationConfigApplicationContext
@@ -323,10 +343,12 @@ server:
 
 
 33.怎么理解约定大于配置？
-        “约定大于配置”（Convention over Configuration，简称 CoC）是软件工程中一种重要的设计思想，核心是通过预定义 “合理的默认规则（约定）” 来减少开发者的配置工作，仅在需要偏离默认规则时才进行手动配置。
+        “约定大于配置”（Convention over Configuration，简称 CoC）是软件工程中一种重要的设计思想，核心是通过预定义 “合理的默认规则（约定）”
+        来减少开发者的配置工作，仅在需要偏离默认规则时才进行手动配置。
 
 34.Spring中的Bean是线程安全的吗
-        Spring中的单例Bean默认是非线程安全的。因为单例Bean在整个应用上下文中只有一个实例，多个线程同时访问这个实例时，如果Bean内部有可变状态（如成员变量），就可能导致线程安全问题。
+        Spring中的单例Bean默认是非线程安全的。因为单例Bean在整个应用上下文中只有一个实例，多个线程同时访问这个实例时，如果Bean内部有可变状态（如成员变量），
+就可能导致线程安全问题。
         解决方法：
             1.使用无状态的Bean：尽量设计无状态的Bean，即不包含任何可变状态的成员变量，这样多个线程访问同一个实例时不会产生冲突。
             2.使用局部变量：将方法中的可变状态定义为局部变量，确保每个线程都有自己的独立副本。
@@ -414,6 +436,7 @@ server:
         2.单例Bean与线程安全的的"职责分离"Spring的核心是管理对象的生命周期和依赖关系，而线程安全是开发者的责任。
         3.单例模式的"利"远大于"弊"，实际开发中Service,Repository等核心Bean通常涉及为无状态。
         4.框架设计需要遵循"最小约束原则"：只提供必要的机制，不强制不必要的限制。
+
 43.Spring缓存为什么是3级？
         Spring缓存通常分为三级缓存，分别是一级缓存、二级缓存和三级缓存。这种设计主要是为了提高数据访问的效率，减少对数据库的直接访问，从而提升应用性能。
         1.一级缓存（Session Cache）：一级缓存是MyBatis中的概念，存在于SqlSession中。每个SqlSession都有自己的一级缓存，默认情况下，当你在同一个SqlSession中多次查询同一条数据时，MyBatis会从一级缓存中获取数据，而不是每次都去数据库查询。一级缓存的生命周期与SqlSession相同，当SqlSession关闭时，一级缓存也会被清空。
