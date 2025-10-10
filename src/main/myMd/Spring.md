@@ -164,7 +164,7 @@
     4.环境变量：也可以通过环境变量来设置激活的配置文件，例如在Linux或MacOS中：
         export SPRING_PROFILES_ACTIVE=prod
     5.优先级：Spring Boot会按照一定的优先级加载配置文件，
-命令行参数 > 环境变量 > application-{profile}.properties > application.properties。因此，可以通过不同的方式覆盖配置。
+            命令行参数 > 环境变量 > application-{profile}.properties > application.properties。因此，可以通过不同的方式覆盖配置。
     6.使用@ConfigurationProperties注解：可以将配置属性绑定到Java类中，方便管理和使用。例如：
         @ConfigurationProperties(prefix="app")
         public class AppProperties {
@@ -206,10 +206,12 @@ server:
     ports: 8080, 8081, 8082  # 同时监听 8080、8081、8082 三个端口
 
 20.BeanFactory和FactoryBean有什么区别？
-    BeanFactory是一个工厂接口，用于自定义Bean的创建逻辑。实现了FactoryBean接口的类可以作为Bean定义的一部分，Spring容器会调用其getObject方法来获取实际的Bean实例。
+    BeanFactory是一个工厂接口，用于自定义Bean的创建逻辑。实现了FactoryBean接口的类可以作为Bean定义的一部分，
+        Spring容器会调用其getObject方法来获取实际的Bean实例。
     BeanFactory是Spring容器的核心接口，负责管理和提供Bean实例。它定义了获取Bean实例的方法，如getBean()，并负责Bean的生命周期管理。
         1.FactoryBean被称作工厂Bean，用于定义Bean创建的细节，如复杂的初始化，动态代理等。
-        2.当一个类实现了 FactoryBean 接口时，Spring 容器中注册的 Bean 名称（id）仍然是这个工厂类本身的名称，只是默认情况下，通过这个名称获取到的对象是 getObject() 方法返回的目标对象。
+        2.当一个类实现了 FactoryBean 接口时，Spring 容器中注册的 Bean 名称（id）仍然是这个工厂类本身的名称，只是默认情况下，
+        通过这个名称获取到的对象是 getObject() 方法返回的目标对象。
             比如：@Component("complexObject") // 这里的名称属于 CustomFactoryBean 本身
                 public class CustomFactoryBean implements FactoryBean<ComplexObject> { ... }
             这里当调用 context.getBean("complexObject") 时，返回的是 CustomFactoryBean.getObject() 生成的 ComplexObject 实例（目标对象）。
