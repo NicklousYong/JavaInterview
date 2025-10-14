@@ -5,16 +5,29 @@
     ThreadLocal通过维护一个Map来存储每个线程的变量副本，键是当前线程，值是该线程的变量副本。
     当调用 threadLocal.set(value) 时，实际是向当前线程的 ThreadLocalMap 中添加键值对（this -> value）。
     由于每个线程的 ThreadLocalMap 是私有变量，不同线程的 ThreadLocal 操作仅影响各自的副本，因此实现了线程间的数据隔离，无需加锁即可保证线程安全。
-    ThreadLocalMap 采用线性探测法解决哈希冲突（区别于 HashMap 的链表法），其内部由 Entry 数组实现，Entry 继承自 WeakReference<ThreadLocal>，目的是在 ThreadLocal 实例被回收后，自动释放对应的 Entry（减少内存泄漏风险）。
-        1.ThreadLocal内维护了一个ThreadLocalMap对象，key 是 ThreadLocal 实例本身，value 是线程要存储的变量副本。
+    ThreadLocalMap 采用线性探测法解决哈希冲突（区别于 HashMap 的链表法），其内部由 Entry 数组实现，Entry 继承自 WeakReference<ThreadLocal>，
+    目的是在 ThreadLocal 实例被回收后，自动释放对应的 Entry（减少内存泄漏风险）。
+        1.ThreadLocal内维护了一个ThreadLocalMap对象，key 是 ThreadLocal 实例本身，value 是线程要存储的变量副本(不是变量本身)。
         2.ThreadLocalMap 是私有变量，拒绝外部访问。
     注意：
         ThreadLocal 若使用不当，可能导致内存泄漏：
-            原因：ThreadLocalMap 的 Entry 中，key 是 ThreadLocal 的弱引用（WeakReference），但 value 是强引用。若 ThreadLocal 实例被回收（key 为 null），而线程仍存活（如线程池核心线程），value 会因强引用无法被回收，导致内存泄漏。
+            原因：ThreadLocalMap 的 Entry 中，key 是 ThreadLocal 的弱引用（WeakReference），但 value 是强引用。
+            若 ThreadLocal 实例被回收（key 为 null），而线程仍存活（如线程池核心线程），value 会因强引用无法被回收，导致内存泄漏。
         解决方案：
             使用完 ThreadLocal 后，务必调用 remove() 方法清除 value。
             避免使用静态 ThreadLocal 长期持有大对象。
+    平时我们写代码会New 一个ThreadLocal对象,但是在SpringBoot里时使用线程池操作。但是操作之后线程池中的资源不会被销毁，会存在引用链。
+    GCRoots->Thread-ThreadLocalMap->Entry->key(强引用)->ThreadLocal
+                            业务代码：    ThreadLocal 强引用指向上面的ThreadLocal
+    就是业务代码设置为null,上述引用链依然存在。此时发生内存泄露。
+    如果ThreadLocal是若引用，则会在GC回收的时候直接回收。
+    那么ThreadLocal一定会被回收吗？
+        不一定，因为ThreadLocalMap的Entry是弱引用，ThreadLocal是强引用，如果ThreadLocal还在使用，那么Entry就不会被回收。
+    为什么value不是弱引用？
+        因为value是线程要存储的变量副本，如果value是弱引用，那么在GC时可能会被回收，导致线程无法获取到正确的值。
+ 
 2.线性探测法：
+        当元素通过哈希函数计算出的目标位置已被占用时，按顺序依次检查后续位置，直到找到空位置完成插入；查找或删除时，也遵循同样的顺序遍历，确保能定位到目标元素。
 
 3.java中实现多线程有几种方法：
         1.继承Thread类
@@ -25,6 +38,7 @@
         6.使用CompletableFuture（异步编程）
         7.使用Timer和TimerTask（定时任务）
         8.使用ScheduledExecutorService（定时任务）
+
 4.4种线程池
     1.newFixedThreadPool(int nThreads)：
         创建一个固定大小的线程池，适合处理CPU密集型任务，避免频繁创建销毁线程的开销。
@@ -122,7 +136,8 @@
             1.区分线程阻塞的类型
                 首先需明确线程为何种原因阻塞（可通过thread dump查看线程状态）：
                 BLOCKED状态：线程正在等待获取synchronized锁（因其他线程持有锁未释放）。
-                    线程竞争synchronized锁失败，处于阻塞队列中。持有锁的线程释放锁（退出synchronized方法 / 代码块）。无需主动唤醒，只需让持有锁的线程尽快执行完同步代码并释放锁，阻塞线程会自动参与锁竞争。
+                    线程竞争synchronized锁失败，处于阻塞队列中。持有锁的线程释放锁（退出synchronized方法 / 代码块）。
+                无需主动唤醒，只需让持有锁的线程尽快执行完同步代码并释放锁，阻塞线程会自动参与锁竞争。
                 WAITING状态：线程通过Object.wait()、Thread.join()等方法进入无限期等待，需被其他线程显式唤醒。
                     Object.wait()：释放锁并等待，需通过notify()/notifyAll()唤醒。
                     Thread.join()：等待目标线程执行完毕，需目标线程执行结束。
@@ -136,12 +151,24 @@
                 2.volatile通过禁止指令重排序，保证变量的操作执行与顺序。
                 3.不保证原子性：当多个线程执行i++的时候，volatile不保证原子性，仍然会出现线程安全问题。
 17.单例模式的双重检查(myVolatile.Singleton有相关代码)：
+// 双重检查的获取实例方法
+                public static Singleton getInstance() {
+                    if (instance == null) {
+                        synchronized (Singleton.class) {
+                    if (instance == null) {
+                        instance = new Singleton(); // 初始化对象
+                    }
+                    }
+                    }
+                    return instance;
+                }
             第一次检查：在加锁前判断对象是否已初始化，若已初始化则直接返回，避免每次访问都加锁（提升性能）。
                     加锁：仅当对象未初始化时，才进入同步代码块（缩小锁范围）。
             第二次检查：在同步代码块内再次判断对象是否已初始化，防止多线程并发进入同步代码块时重复创建对象（保证线程安全）。
             为什么第二次检查要加volatile?
                 1.防止指令重排序：在Java中，对象的创建过程可以分为三步：分配内存、初始化对象、将引用指向内存地址。
-                由于编译器和处理器可能会对指令进行重排序，导致在多线程环境下，一个线程可能看到一个未完全初始化的对象引用。使用volatile关键字可以禁止这种重排序，确保对象在被其他线程看到之前已经完全初始化。
+                由于编译器和处理器可能会对指令进行重排序，导致在多线程环境下，一个线程可能看到一个未完全初始化的对象引用。
+                使用volatile关键字可以禁止这种重排序，确保对象在被其他线程看到之前已经完全初始化。
                 2.保证可见性：volatile关键字确保当一个线程修改了volatile变量的值，其他线程能够立即看到这个变化。
                 在双重检查锁定中，volatile确保当一个线程创建并赋值给实例变量后，其他线程能够立即看到这个已经初始化的实例，而不是看到一个旧的或未初始化的值。 
 18.为什么wait和notify方法要在同步代码块中使用？
@@ -157,21 +184,20 @@
                 而判断该条件的代码通常在代码块中，确保在调用wait之前，线程持有锁并检查条件是原子操作，避免在检查条件和调用wait之间被其他线程修改条件，导致逻辑错误。
 19.java中的 interrupted 和 isInterrupted 有什么区别
                 背景：线程的 “中断状态” 是一个 boolean 标志，用于表示线程是否被其他线程调用 interrupt() 方法请求中断。
-                interrupted属于静态方法，而isInterrupted 属于实例方法。
-                interrupted可以查询当前线程状态，。而isInterrupted可查询指定线程的中断状态。
-                interrupted会清除中断状态，isInterrupted不会清除中断状态。
+                1.interrupted属于静态方法，而isInterrupted 属于实例方法。
+                2.interrupted可以查询当前线程状态，。而isInterrupted可查询指定线程的中断状态。
+                3.interrupted会清除中断状态，isInterrupted不会清除中断状态。
 20.java中synchronized和 reentrantLock有什么不同
-
-对比维度	                    synchronized	                                    ReentrantLock
-本质	                        Java 语言关键字	                                    JDK 提供的工具类，依赖 API 实现（Java 代码）
-可重入性	                    支持（同一线程可多次获取锁，自动记录重入次数）	            支持（显式实现可重入，通过 getHoldCount() 查看重入次数）
-锁的释放	                    自动释放（同步块 / 方法执行完毕或抛出异常时）	            必须手动释放（需在 finally 块中调用 unlock()，否则可能导致死锁）
-锁的获取方式	                默认非公平锁（“偏向锁→轻量级锁→重量级锁”，默认非公平）	    支持公平锁和非公平锁（构造函数 ReentrantLock(boolean fair) 指定，默认非公平）
-响应中断	                    不支持（线程获取锁时被阻塞，无法被中断，只能一直等待）	    支持（通过 lockInterruptibly() 方法，可在等待锁时响应中断，避免死等）
-超时获取锁	                不支持（获取不到锁时会一直阻塞）	                        支持（通过 tryLock(long timeout, TimeUnit unit) 实现，超时后放弃获取，避免永久阻塞）
-锁状态查询	                无法直接查询（JVM 内部维护，无对外 API）	                可查询（通过 isLocked()、isHeldByCurrentThread()、getHoldCount() 等方法）
-性能	                        JDK 1.6 后与 synchronized 性能差距缩小
-使用复杂度	                简单（无需手动管理锁的释放，代码简洁）	                    复杂（需手动加锁 / 释放锁，需注意 finally 块的使用，避免遗漏 unlock()）
+    对比维度	                    synchronized	                                    ReentrantLock
+    本质	                        Java 语言关键字	                                    JDK 提供的工具类，依赖 API 实现（Java 代码）
+    可重入性	                    支持（同一线程可多次获取锁，自动记录重入次数）	            支持（显式实现可重入，通过 getHoldCount() 查看重入次数）
+    锁的释放	                    自动释放（同步块 / 方法执行完毕或抛出异常时）	            必须手动释放（需在 finally 块中调用 unlock()，否则可能导致死锁）
+    锁的获取方式	                默认非公平锁（“偏向锁→轻量级锁→重量级锁”，默认非公平）	    支持公平锁和非公平锁（构造函数 ReentrantLock(boolean fair) 指定，默认非公平）
+    响应中断	                    不支持（线程获取锁时被阻塞，无法被中断，只能一直等待）	    支持（通过 lockInterruptibly() 方法，可在等待锁时响应中断，避免死等）
+    超时获取锁	                不支持（获取不到锁时会一直阻塞）	                        支持（通过 tryLock(long timeout, TimeUnit unit) 实现，超时后放弃获取，避免永久阻塞）
+    锁状态查询	                无法直接查询（JVM 内部维护，无对外 API）	                可查询（通过 isLocked()、isHeldByCurrentThread()、getHoldCount() 等方法）
+    性能	                        JDK 1.6 后与 synchronized 性能差距缩小
+    使用复杂度	                简单（无需手动管理锁的释放，代码简洁）	                    复杂（需手动加锁 / 释放锁，需注意 finally 块的使用，避免遗漏 unlock()）
 21.Thread类中的yield方法有什么作用？
     可以暂停当前正在执行的线程对象，并将其状态从运行状态转换为就绪状态，使得线程调度器有机会选择其他同等优先级的线程来执行。
 22.java线程池中的submit和execute方法有什么区别？
@@ -186,7 +212,8 @@
         有序性：通过禁止指令重排序和保证锁的互斥性，确保多线程执行顺序符合预期。
 24.介绍一下锁升级机制
         无锁：对象刚刚创建时的状态，没有没任何线程同步。
-        偏向锁：当线程第一次获取锁时，通过CAS操作将线程ID记录在对象头的"Mark Word"中，之后该线程再次进入同步块时，无需重新CAS竞争，只需判断对象头的线程ID是否为当前线程。
+        偏向锁：当线程第一次获取锁时，通过CAS操作将线程ID记录在对象头的"Mark Word"中，之后该线程再次进入同步块时，
+        无需重新CAS竞争，只需判断对象头的线程ID是否为当前线程。
             是：直接操作资源。
             否：触发偏向锁撤销，升级为轻量级锁。
         轻量级锁(应对短期竞争)：在第二个线程尝试获取资源时，升级为轻量级锁。
@@ -220,7 +247,8 @@
             并发量高，希望减少线程阻塞；
             允许短时间的数据不一致（通过重试最终一致）。
 26.什么是自旋锁？
-        自旋锁是一种非阻塞锁，当线程尝试获取锁时，如果锁被其他线程持有，它不会进入阻塞状态(不会有用户态到内核态的切换)，而是通过循环（自旋）不断尝试获取锁，直到成功为止。
+        自旋锁是一种非阻塞锁，当线程尝试获取锁时，如果锁被其他线程持有，
+        它不会进入阻塞状态(不会有用户态到内核态的切换)，而是通过循环（自旋）不断尝试获取锁，直到成功为止。
         自旋锁终止条件：
         1.获取到锁
         2.自旋数量达到一定数量
@@ -277,7 +305,8 @@
         读锁与读锁兼容：多个线程可以同时执行读操作。
         总结：只有两个都是读，才会共享，其他场景都是排他。
 32.什么是锁降级？
-    读写锁（如 Java 中的 ReentrantReadWriteLock） 特有的一种机制，指的是 持有 “写锁”（排他锁）的线程，在不释放写锁的前提下，先获取 “读锁”（共享锁），随后再释放写锁 的过程。
+    读写锁（如 Java 中的 ReentrantReadWriteLock） 特有的一种机制，指的是 持有 “写锁”（排他锁）的线程，
+    在不释放写锁的前提下，先获取 “读锁”（共享锁），随后再释放写锁 的过程。
     目的是保证数据一致性与共享权限：线程在完成写操作后，释放写锁能够让其他线程读取，从而最大程度保证资源间的可用。
 33.共享锁和独占锁
     独占锁：每次只有一个线程能获取锁。避免读写冲突。
