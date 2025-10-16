@@ -425,11 +425,32 @@
         3.CyclicBarrier
         4.Phaser
 48.Java中线程池如何实现？
-        线程池的创建依赖以下组件：
-            1.线程池管理器：负责线程池的销毁，控制线程数量，任务队列等参数。
-            2.工作线程：线程池中的核心线程，执行完成之后不销毁，而是循环获取新任务。
-            3.任务队列：存放正在等待的任务，当线程都在忙碌时，新任务会进入队列等待。
-            4.任务接口：定义线程需要执行的逻辑，Runnable无返回值，Callable有返回值。
+    创建线程池的方式：
+    在Java中，创建线程池主要有两种方式：使用Executors工厂类和直接使用ThreadPoolExecutor类。以下是这两种方式的详细介绍：
+    1.使用Executors工厂类：Java提供了Executors类作为线程池的工厂类，提供了多种静态方法来创建不同类型的线程池。常见的方法包括：
+        - newFixedThreadPool(int nThreads)：创建一个固定大小的线程池，适用于负载较稳定的场景。
+        - newCachedThreadPool()：创建一个可缓存的线程池，适用于任务量波动较大的场景。
+        - newSingleThreadExecutor()：创建一个单线程化的线程池，适用于需要顺序执行任务的场景。
+        - newScheduledThreadPool(int corePoolSize)：创建一个支持定时和周期性任务执行的线程池，适用于需要定时任务的场景。
+        示例代码：
+          ```java
+              ExecutorService executor = Executors.newFixedThreadPool(10);
+            ```
+    2.直接使用ThreadPoolExecutor类：ThreadPoolExecutor类提供了更灵活的方式来创建和配置线程池。
+    通过构造方法，可以自定义核心线程数、最大线程数、线程存活时间、任务队列类型等参数。
+    示例代码：
+        ```java
+                int corePoolSize = 5;
+                int maximumPoolSize = 10;
+                long keepAliveTime = 60;
+                TimeUnit unit = TimeUnit.SECONDS;
+                BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
+                ThreadFactory threadFactory = Executors.defaultThreadFactory();
+                RejectedExecutionHandler handler = new ThreadPoolExecutor.AbortPolicy();
+                ExecutorService executor = new ThreadPoolExecutor(corePoolSize, maximumPoolSize,
+                keepAliveTime, unit, workQueue, threadFactory, handler);
+        ```
+        总结：Java中创建线程池可以通过Executors工厂类快速创建常用类型的线程池，也可以通过直接使用ThreadPoolExecutor类进行更细粒度的配置。开发者可以根据具体需求选择合适的方式来创建和管理线程池。
         ThreadPoolExector的核心参数：
             核心线程数，最大线程数，临时线程空闲存活时间，临时线程空闲存活时间的单位，任务队列，线程工厂，拒绝策略。
         线程池的执行流程：   
@@ -461,7 +482,49 @@
             2.CachedThreadPool：可缓存线程池，核心线程数为0，最大线程数为 Integer.MAX_VALUE，适合任务量波动较大的场景。
             3.SingleThreadExecutor：单线程化线程池，只有一个工作线程，适合需要顺序执行任务的场景。
             4.ScheduledThreadPool：支持定时和周期性任务执行的线程池，适合需要定时任务的场景。
-        
+        核心参数说明
+            1.核心线程数（corePoolSize）
+                线程池长期保持的最小线程数量，即使线程处于空闲状态也不会被销毁（除非设置了allowCoreThreadTimeOut）
+                当新任务提交时，若当前线程数小于核心线程数，会优先创建新线程执行任务
+            2.最大线程数（maximumPoolSize）
+                线程池允许创建的最大线程数量
+                当任务队列满了且当前线程数小于最大线程数时，会创建新线程处理任务
+            3.空闲线程存活时间（keepAliveTime）
+                当线程数超过核心线程数时，多余的空闲线程的存活时间
+                超过这个时间后，空闲线程会被销毁，直到线程数减少到核心线程数
+            4.时间单位（unit）
+                配合keepAliveTime使用，指定时间单位（如秒、毫秒等）
+                可选值：TimeUnit.NANOSECONDS、MICROSECONDS、MILLISECONDS、SECONDS等
+            5.任务队列（workQueue）
+                用于存放等待执行的任务的阻塞队列
+                常用实现：
+                        LinkedBlockingQueue：无界队列（默认容量 Integer.MAX_VALUE）
+                        ArrayBlockingQueue：有界数组队列
+                        SynchronousQueue：不存储元素的同步队列
+                        PriorityBlockingQueue：优先级队列
+            6.线程工厂（threadFactory）
+                用于创建新线程的工厂
+                可自定义线程名称、优先级、是否为守护线程等属性
+                默认使用Executors.defaultThreadFactory()
+            7.拒绝策略（handler）
+                当任务队列已满且线程数达到最大线程数时，对新提交任务的处理策略
+                四种内置策略：
+                    AbortPolicy：直接抛出RejectedExecutionException（默认）
+                    CallerRunsPolicy：由提交任务的线程自己执行
+                    DiscardPolicy：直接丢弃新任务，不抛出异常
+                    DiscardOldestPolicy：丢弃队列中最旧的任务，然后尝试提交新任务。
+            参数间的协作流程 
+                当提交新任务时，若当前线程数 < 核心线程数 → 创建新线程执行任务
+                若当前线程数 ≥ 核心线程数 → 将任务加入队列等待
+                若队列已满且当前线程数 < 最大线程数 → 创建新线程执行任务
+                若队列已满且当前线程数 ≥ 最大线程数 → 触发拒绝策略
+            线程池的工作流程：
+                1.初步接收任务时，会启动核心线程数的线程来处理任务，直到达到核心线程数。
+                2.已经达到核心线程数，新任务会被放入任务队列中等待。
+                3.如果队列已经满了，那么会继续创建线程，直到达到最大线程数。
+                4.达到最大线程数之后，如果没有新的任务，那么多余的线程会在空闲存活时间后被销毁，直到线程数降到核心线程数。
+                5.如果任务队列满了且线程数达到最大线程数，则根据拒绝策略处理新任务。
+
 49.JAVA中的阻塞队列：
         1.java中的阻塞队列是一种支持阻塞插入和阻塞移除的队列数据结构。核心特性是：队列满时，生产者线程会被阻塞，队列空时，消费者线程会被阻塞。
     操作类型	        插入元素（队列满时）	        移除元素（队列空时）	    检查元素（队列空时）
@@ -686,6 +749,16 @@
             6.threadFactory（线程工厂）：用于创建新线程的工厂接口。通过自定义ThreadFactory，可以设置新创建线程的名称、优先级、是否为守护线程等属性。
             7.rejectedExecutionHandler（拒绝策略）：当任务无法被执行时（如线程池已满且任务队列已满），采用的处理策略。常见的拒绝策略包括AbortPolicy（抛出异常）、CallerRunsPolicy（调用者运行任务）、DiscardPolicy（丢弃任务）和DiscardOldestPolicy（丢弃最旧的任务）。
         通过合理配置这些参数，开发者可以根据具体应用场景优化线程池的性能和资源利用率，从而提高多线程程序的效率和响应速度。
+72.线程池的最大线程数和核心线程数如何设置？
+1.核心线程数（corePoolSize）：核心线程数是线程池中始终保持活动的线程数量。设置核心线程数时，应考虑以下因素：
+- 任务的并发性：根据应用程序的任务并发需求，设置足够的核心线程数以处理并发任务。
+- 系统资源：考虑系统的CPU和内存资源，避免设置过高的核心线程数导致资源耗尽。
+- 任务执行时间：如果任务执行时间较长，可以适当增加核心线程数，以提高并发处理能力。
+2.最大线程数（maximumPoolSize）：最大线程数是线程池中允许的最大线程数量。设置最大线程数时，应考虑以下因素：
+- 任务峰值：根据应用程序的任务峰值需求，设置足够的最大线程数以应对高峰期的任务量。
+- 系统资源：同样需要考虑系统的CPU和内存资源，避免设置过高的最大线程数导致资源耗尽。
+- 任务执行时间和频率：如果任务执行时间较短且频率较高，可以适当增加最大线程数，以提高处理能力。
+
 
 
 
